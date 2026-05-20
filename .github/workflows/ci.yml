@@ -1,0 +1,116 @@
+name: FastWinding CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-14, windows-latest]
+        compiler: [clang, gcc]
+        exclude:
+          - os: windows-latest
+            compiler: gcc
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake libeigen3-dev libtbb-dev
+
+    - name: Install Dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install eigen tbb
+
+    - name: Install Dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install cmake eigen tbb -y
+
+    - name: Configure CMake
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}++ \
+              ..
+
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config ${{ env.BUILD_TYPE }} -j$(nproc)
+
+    - name: Run Tests
+      working-directory: build
+      run: ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+
+    - name: Upload Test Results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.compiler }}
+        path: build/Testing/**/*.xml
+
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run Clang-Tidy
+      uses: reviewdog/action-clang-tidy@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        reporter: github-pr-check
+        clang_tidy_config: .clang-tidy
+
+  sanitize:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake libeigen3-dev libtbb-dev
+
+    - name: Build with Sanitizers
+      run: |
+        mkdir -p build_san
+        cd build_san
+        cmake -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_CXX_FLAGS="-fsanitize=address -fsanitize=leak -fno-omit-frame-pointer" \
+              -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address -fsanitize=leak" \
+              ..
+        cmake --build . -j$(nproc)
+
+    - name: Run Tests with Sanitizers
+      working-directory: build_san
+      run: ctest --output-on-failure
+
+    - name: Build with Thread Sanitizer
+      run: |
+        mkdir -p build_tsan
+        cd build_tsan
+        cmake -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
+              ..
+        cmake --build . -j$(nproc)
+
+    - name: Run Tests with Thread Sanitizer
+      working-directory: build_tsan
+      run: ctest --output-on-failure
