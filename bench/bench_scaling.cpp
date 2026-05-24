@@ -5,6 +5,7 @@
 #include <string>
 #include <random>
 #include <cmath>
+#include <numbers>
 
 #include "../WindingNumber/UT_SolidAngle.h"
 #include "../WindingNumber/UT_FixedVector.h"
@@ -22,9 +23,9 @@ Eigen::MatrixXf generateSphere(int resolution) {
 
     int idx = 0;
     for (int lat = 0; lat <= resolution; lat++) {
-        float theta = M_PI * lat / resolution;
+        float theta = static_cast<float>(std::numbers::pi) * lat / resolution;
         for (int lon = 0; lon <= resolution; lon++) {
-            float phi = 2.0f * M_PI * lon / resolution;
+            float phi = 2.0f * static_cast<float>(std::numbers::pi) * lon / resolution;
             V(idx, 0) = radius * sinf(theta) * cosf(phi);
             V(idx, 1) = radius * sinf(theta) * sinf(phi);
             V(idx, 2) = radius * cosf(theta);

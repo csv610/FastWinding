@@ -213,7 +213,7 @@ HDK_Sample::UT_SolidAngle<float, float> solid_angle;
 solid_angle.init(ntriangles, indices, nvertices, positions, 2);
 
 // 3. Compute winding number for a query point
-float wn = solid_angle.computeSolidAngle(query_point, 2.0f) / (4.0f * M_PI);
+float wn = solid_angle.computeSolidAngle(query_point, 2.0f) / (4.0f * std::numbers::pi);
 ```
 
 ### Parameters

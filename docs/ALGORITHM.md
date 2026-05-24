@@ -63,7 +63,7 @@ class UT_SolidAngle {
 UT_SolidAngle<float, float> solid_angle;
 solid_angle.init(ntriangles, indices, nvertices, positions, 2);
 
-float wn = solid_angle.computeSolidAngle(query, 2.0) / (4.0 * M_PI);
+float wn = solid_angle.computeSolidAngle(query, 2.0) / (4.0 * std::numbers::pi);
 ```
 
 ## Build Requirements

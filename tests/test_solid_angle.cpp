@@ -1,6 +1,7 @@
 #include "test_framework.h"
 
 #include "../WindingNumber/UT_SolidAngle.h"
+#include <numbers>
 #include <cmath>
 
 using Vec3 = HDK_Sample::UT_Vector3T<float>;
@@ -96,7 +97,7 @@ TEST(UT_SolidAngle, WindingNumberNormalization)
 
     Vec3 query = make_vec3(0.0f, 0.0f, 10.0f);
     float solid = solid_angle.computeSolidAngle(query, 2.0);
-    float wn = solid / (4.0f * M_PI);
+    float wn = solid / (4.0f * static_cast<float>(std::numbers::pi));
 
     ASSERT_TRUE(wn >= 0.0f);
     ASSERT_TRUE(wn <= 1.0f);

@@ -7,6 +7,7 @@
 
 #include "../WindingNumber/UT_SolidAngle.h"
 
+#include <numbers>
 #include <fstream>
 #include <cmath>
 
@@ -60,7 +61,7 @@ TEST(Functional, SolidAngleComputation)
         Pp[2] = 2.0f;
 
         float solid = solid_angle.computeSolidAngle(Pp, accuracy_scale);
-        W(i) = solid / (4.0f * M_PI);
+        W(i) = solid / (4.0f * static_cast<float>(std::numbers::pi));
     }
 
     for (int i = 0; i < 10; i++) {
@@ -99,7 +100,7 @@ TEST(Functional, WindingNumberConsistency)
     center[2] /= V.rows();
 
     float solid = solid_angle.computeSolidAngle(center, accuracy_scale);
-    float wn = solid / (4.0f * M_PI);
+    float wn = solid / (4.0f * static_cast<float>(std::numbers::pi));
 
     ASSERT_FLOAT_EQ(wn, 1.0f, 1e-3f);
 }
@@ -132,14 +133,14 @@ TEST(Functional, ParallelComputation)
 
     for (int batch = 0; batch < num_batches; batch++) {
         int start = batch * batch_size;
-        int end = std::min(start + batch_size, P.rows());
+        int end = std::min(start + batch_size, static_cast<int>(P.rows()));
 
         for (int i = start; i < end; i++) {
             HDK_Sample::UT_Vector3T<float> Pp;
             Pp[0] = P(i, 0);
             Pp[1] = P(i, 1);
             Pp[2] = P(i, 2);
-            W(i) = solid_angle.computeSolidAngle(Pp, accuracy_scale) / (4.0f * M_PI);
+            W(i) = solid_angle.computeSolidAngle(Pp, accuracy_scale) / (4.0f * static_cast<float>(std::numbers::pi));
         }
     }
 

@@ -4,10 +4,9 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can 
 // obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "WindingNumber/UT_SolidAngle.h"
+#include "fastwinding/solver.h"
 
 #include <igl/read_triangle_mesh.h>
-#include <igl/parallel_for.h>
 #include <igl/readDMAT.h>
 #include <igl/writeDMAT.h>
 
@@ -18,6 +17,9 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
+#include <vector>
+#include <array>
 
 namespace {
 
@@ -174,7 +176,7 @@ int main(int argc, char * argv[])
     
     // Read mesh
     Eigen::MatrixXf V;
-    Eigen::Matrix<int,Eigen::Dynamic,3,Eigen::RowMajor> F;
+    Eigen::MatrixXi F;
     
     std::cout << BLUE << BOLD << " [1/5]" << RESET << " 📦 Loading mesh: " << CYAN << meshFile << RESET << "...\n";
     bool meshLoaded = igl::read_triangle_mesh(meshFile, V, F);
@@ -214,40 +216,39 @@ int main(int argc, char * argv[])
     }
     
     // Initialize solid angle calculator
-    std::cout << BLUE << BOLD << " [3/5]" << RESET << " ⚙️  Initializing solid angle calculator...\n\n";
+    std::cout << BLUE << BOLD << " [3/5]" << RESET << " ⚙️  Initializing solver...\n\n";
     
-    std::vector<HDK_Sample::UT_Vector3T<float>> U(V.rows());
+    fastwinding::MeshObject mesh;
+    mesh.vertices.resize(V.rows());
     for (int i = 0; i < V.rows(); ++i) {
-        U[i][0] = V(i, 0);
-        U[i][1] = V(i, 1);
-        U[i][2] = V(i, 2);
+        mesh.vertices[i] = {V(i, 0), V(i, 1), V(i, 2)};
+    }
+    mesh.faces.resize(F.rows());
+    for (int i = 0; i < F.rows(); ++i) {
+        mesh.faces[i] = {F(i, 0), F(i, 1), F(i, 2)};
     }
     
-    HDK_Sample::UT_SolidAngle<float, float> solid_angle;
-    int order = 2;
-    double accuracy_scale = 2.0;
-    
-    solid_angle.init(
-        F.rows(),
-        F.data(),
-        V.rows(),
-        U.data(),
-        order);
+    fastwinding::FastWindingSolver solver;
+    if (!solver.init(mesh)) {
+        std::cerr << RED << BOLD << "  ❌ ERROR: " << RESET << RED << "Failed to initialize solver" << RESET << "\n\n";
+        return 3;
+    }
     
     std::cout << BLUE << BOLD << " [4/5]" << RESET << " 🧮 Computing winding numbers in parallel...\n\n";
     
-    // Compute winding numbers in parallel
-    Eigen::VectorXf W(P.rows());
+    // Prepare query points for batch processing
+    std::vector<std::array<float, 3>> queries(P.rows());
+    for (int i = 0; i < P.rows(); ++i) {
+        queries[i] = {P(i, 0), P(i, 1), P(i, 2)};
+    }
     
-    igl::parallel_for(P.rows(), [&](int p) {
-        HDK_Sample::UT_Vector3T<float> Pp;
-        Pp[0] = P(p, 0);
-        Pp[1] = P(p, 1);
-        Pp[2] = P(p, 2);
-        
-        float solid = solid_angle.computeSolidAngle(Pp, accuracy_scale);
-        W(p) = solid / (4.0 * M_PI);
-    }, 1000);
+    // Compute winding numbers in parallel
+    std::vector<float> results = solver.computeBatch(queries);
+    
+    Eigen::VectorXf W(results.size());
+    for (size_t i = 0; i < results.size(); ++i) {
+        W(i) = results[i];
+    }
     
     // Validate output values
     int nanCount = 0;

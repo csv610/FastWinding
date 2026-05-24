@@ -3,11 +3,8 @@
 #include "UT_FixedVector.h"
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
+#include <numbers>
 #include <cmath>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 namespace fastwinding {
 
@@ -38,10 +35,13 @@ bool FastWindingSolver::init(const MeshObject& mesh, int order) {
     }
 
     // 2. Format face index array (UT_SolidAngle expects a flat array of ints)
+    // We use reinterpret_cast here for performance, as std::array<int,3> is 
+    // guaranteed to be layout-compatible with int[3].
     static_assert(sizeof(decltype(mesh.faces)::value_type) == 3 * sizeof(int),
-        "std::array<int,3> must be layout-compatible with int[3] for reinterpret_cast");
+        "std::array<int,3> must be layout-compatible with int[3]");
     static_assert(alignof(decltype(mesh.faces)::value_type) == alignof(int),
         "std::array<int,3> alignment must match int alignment");
+    
     const int* faces_ptr = reinterpret_cast<const int*>(mesh.faces.data());
 
     // 3. Initialize the internal SideFX solver
@@ -61,24 +61,22 @@ float FastWindingSolver::compute(const std::array<float, 3>& query_point, double
     Pp[1] = query_point[1];
     Pp[2] = query_point[2];
     
-    float solid = impl->solid_angle.computeSolidAngle(Pp, accuracy_scale);
-    return solid / (4.0f * static_cast<float>(M_PI));
+    float solid = impl->solid_angle.computeSolidAngle(Pp, static_cast<float>(accuracy_scale));
+    return solid / (4.0f * static_cast<float>(std::numbers::pi));
 }
 
-std::vector<float> FastWindingSolver::computeBatch(
-    const std::vector<std::array<float, 3>>& query_points, 
+void FastWindingSolver::computeBatchImpl(
+    size_t n, 
+    const std::array<float, 3>* queries, 
+    float* results, 
     double accuracy_scale) const {
     
-    std::vector<float> results(query_points.size());
-    
     // Multi-core parallel calculation utilizing the system's TBB
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, query_points.size()), [&](const tbb::blocked_range<size_t>& r) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& r) {
         for (size_t i = r.begin(); i != r.end(); ++i) {
-            results[i] = compute(query_points[i], accuracy_scale);
+            results[i] = compute(queries[i], accuracy_scale);
         }
     });
-    
-    return results;
 }
 
 } // namespace fastwinding
