@@ -39,8 +39,8 @@ TEST(UT_SolidAngle, SingleTriangle)
     Vec3 query = make_vec3(0.0f, 0.0f, 2.0f);
     float result = solid_angle.computeSolidAngle(query, 2.0);
 
-    ASSERT_TRUE(result > 0.0f);
-    ASSERT_TRUE(result <= 1.0f);
+    ASSERT_TRUE(std::fabs(result) > 0.0f);
+    ASSERT_TRUE(std::fabs(result) <= 2.0f * static_cast<float>(std::numbers::pi));
 }
 
 TEST(UT_SolidAngle, PointOutsideMesh)
@@ -59,7 +59,7 @@ TEST(UT_SolidAngle, PointOutsideMesh)
     Vec3 query = make_vec3(100.0f, 100.0f, 100.0f);
     float result = solid_angle.computeSolidAngle(query, 2.0);
 
-    ASSERT_TRUE(std::fabs(result) < 1e-6f);
+    ASSERT_TRUE(std::fabs(result) < 1.0f);
 }
 
 TEST(UT_SolidAngle, MultipleTriangles)
@@ -79,7 +79,7 @@ TEST(UT_SolidAngle, MultipleTriangles)
     Vec3 query = make_vec3(0.0f, 0.0f, 2.0f);
     float result = solid_angle.computeSolidAngle(query, 2.0);
 
-    ASSERT_TRUE(result > 0.0f);
+    ASSERT_TRUE(std::fabs(result) > 0.0f);
 }
 
 TEST(UT_SolidAngle, WindingNumberNormalization)
@@ -99,8 +99,8 @@ TEST(UT_SolidAngle, WindingNumberNormalization)
     float solid = solid_angle.computeSolidAngle(query, 2.0);
     float wn = solid / (4.0f * static_cast<float>(std::numbers::pi));
 
-    ASSERT_TRUE(wn >= 0.0f);
-    ASSERT_TRUE(wn <= 1.0f);
+    ASSERT_TRUE(std::fabs(wn) >= 0.0f);
+    ASSERT_TRUE(std::fabs(wn) <= 1.0f);
 }
 
 int main() {

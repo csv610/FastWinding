@@ -121,6 +121,22 @@ target_include_directories(test_array PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_array PRIVATE fastwinding_core)
 add_test(NAME ArrayTests COMMAND test_array)
 
+add_executable(test_solid_angle tests/test_solid_angle.cpp)
+target_include_directories(test_solid_angle PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_solid_angle PRIVATE fastwinding_core)
+add_test(NAME SolidAngleTests COMMAND test_solid_angle)
+
+add_executable(test_functional tests/test_functional.cpp)
+target_include_directories(test_functional PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_functional PRIVATE fastwinding_core igl::core)
+add_test(NAME FunctionalTests COMMAND test_functional
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(test_bvh tests/test_bvh.cpp)
+target_include_directories(test_bvh PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_bvh PRIVATE fastwinding_core)
+add_test(NAME BVHTests COMMAND test_bvh)
+
 add_test(NAME FastWindingTest COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} pig-head.ply pig-head-Q.dmat output.dmat
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
