@@ -16,7 +16,7 @@ public:
         return runner;
     }
 
-    void addTest(const std::string& suite, const std::string& name, std::function<bool()> func) {
+    void addTest(const std::string& suite, const std::string& name, std::function<void()> func) {
         tests.push_back({suite, name, func});
     }
 
@@ -32,14 +32,9 @@ public:
             }
 
             try {
-                bool result = test.func();
-                if (result) {
-                    std::cout << "[PASS] " << test.name << "\n";
-                    passed++;
-                } else {
-                    std::cout << "[FAIL] " << test.name << "\n";
-                    failed++;
-                }
+                test.func();
+                std::cout << "[PASS] " << test.name << "\n";
+                passed++;
             } catch (const std::exception& e) {
                 std::cout << "[FAIL] " << test.name << " - Exception: " << e.what() << "\n";
                 failed++;
@@ -61,13 +56,14 @@ private:
     struct Test {
         std::string suite;
         std::string name;
-        std::function<bool()> func;
+        std::function<void()> func;
     };
     std::vector<Test> tests;
 };
+} // namespace TestFramework
 
 #define TEST(suite, name) \
-    bool test_##suite##_##name(); \
+    void test_##suite##_##name(); \
     namespace { \
         struct TestReg_##suite##_##name { \
             TestReg_##suite##_##name() { \
@@ -75,7 +71,7 @@ private:
             } \
         } reg_##suite##_##name; \
     } \
-    bool test_suite##_##name()
+    void test_##suite##_##name()
 
 #define ASSERT_TRUE(x) \
     do { \

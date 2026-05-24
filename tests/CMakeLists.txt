@@ -7,11 +7,8 @@ if(ENABLE_FUZZ)
 
     add_executable(fuzz_winding
         fuzz_winding.cpp
-        ../WindingNumber/FastWindingNumbers.h
-        ../WindingNumber/FastWindingNumbers.cpp
         ../WindingNumber/UT_SolidAngle.cpp
         ../WindingNumber/UT_Array.cpp
-        ../WindingNumber/VM_SSEFunc.h
     )
 
     target_link_libraries(fuzz_winding

@@ -24,21 +24,13 @@ namespace {
 // ANSI Theme Color Escape Codes
 const char* RESET       = "\033[0m";
 const char* BOLD        = "\033[1m";
-const char* DIM         = "\033[2m";
 const char* RED         = "\033[31m";
 const char* GREEN       = "\033[32m";
 const char* YELLOW      = "\033[33m";
 const char* BLUE        = "\033[34m";
-const char* MAGENTA     = "\033[35m";
 const char* CYAN        = "\033[36m";
 const char* BRIGHT_CYAN = "\033[96m";
 const char* GRAY        = "\033[90m";
-
-std::string getFileExtension(const std::string& path) {
-    size_t pos = path.find_last_of('.');
-    if (pos == std::string::npos) return "";
-    return path.substr(pos + 1);
-}
 
 bool fileExists(const std::string& path) {
     std::ifstream f(path);
@@ -47,10 +39,6 @@ bool fileExists(const std::string& path) {
 
 bool isValidNumber(float x) {
     return std::isfinite(x);
-}
-
-bool isValidVector(const Eigen::Vector3f& v) {
-    return isValidNumber(v[0]) && isValidNumber(v[1]) && isValidNumber(v[2]);
 }
 
 void printUsage(const char* programName) {
@@ -71,9 +59,9 @@ void printUsage(const char* programName) {
     std::cerr << BOLD << "EXIT CODES:" << RESET << "\n";
     std::cerr << "  " << GREEN << "0" << RESET << " - Success\n";
     std::cerr << "  " << RED << "1" << RESET << " - Invalid arguments\n";
-    std::cerr << "  " << RED << "2" << RESET << " - File not found or cannot be read\n";
+    std::cerr << "  " << RED << "2" << RESET << " - File not found, cannot be read, or unsupported format\n";
     std::cerr << "  " << RED << "3" << RESET << " - Invalid mesh data\n";
-    std::cerr << "  " << RED << "4" << RESET << " - Invalid query points\n";
+    std::cerr << "  " << RED << "4" << RESET << " - Invalid query points (NaN/Inf)\n";
     std::cerr << "  " << RED << "5" << RESET << " - Write error\n\n";
 }
 
@@ -126,7 +114,7 @@ int validateMesh(const Eigen::MatrixXf& V, const Eigen::MatrixXi& F) {
     return 0;
 }
 
-int validateQueryPoints(const Eigen::MatrixXf& P, const Eigen::MatrixXf& V) {
+int validateQueryPoints(const Eigen::MatrixXf& P) {
     if (P.rows() == 0) {
         std::cerr << RED << BOLD << "  ❌ ERROR: " << RESET << RED << "No query points provided" << RESET << "\n";
         return 4;
@@ -220,7 +208,7 @@ int main(int argc, char * argv[])
     std::cout << GRAY << "        ● Loaded " << BOLD << P.rows() << RESET << GRAY << " query points" << RESET << "\n\n";
     
     // Validate query points
-    validationResult = validateQueryPoints(P, V);
+    validationResult = validateQueryPoints(P);
     if (validationResult != 0) {
         return validationResult;
     }

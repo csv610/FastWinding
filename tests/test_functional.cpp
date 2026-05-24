@@ -1,17 +1,14 @@
 #include "test_framework.h"
 
-#include "../WindingNumber/UT_SolidAngle.h"
-#include "../WindingNumber/UT_Vector3.h"
-#include "../WindingNumber/UT_Array.h"
+#include <Eigen/Core>
 #include <igl/read_triangle_mesh.h>
 #include <igl/readDMAT.h>
 #include <igl/writeDMAT.h>
-#include <Eigen/Core>
+
+#include "../WindingNumber/UT_SolidAngle.h"
 
 #include <fstream>
 #include <cmath>
-
-TEST_SUITE(Functional)
 
 TEST(Functional, LoadPigHeadMesh)
 {
@@ -90,7 +87,8 @@ TEST(Functional, WindingNumberConsistency)
 
     float accuracy_scale = 2.0;
 
-    HDK_Sample::UT_Vector3T<float> center(0.0f, 0.0f, 0.0f);
+    HDK_Sample::UT_Vector3T<float> center;
+    center[0] = 0.0f; center[1] = 0.0f; center[2] = 0.0f;
     for (int i = 0; i < V.rows(); i++) {
         center[0] += V(i, 0);
         center[1] += V(i, 1);
@@ -215,7 +213,8 @@ TEST(Functional, AccuracyScaleEffect)
 
     solid_angle.init(F.rows(), F.data(), V.rows(), U.data(), 2);
 
-    HDK_Sample::UT_Vector3T<float> query(0.0f, 0.0f, 0.0f);
+    HDK_Sample::UT_Vector3T<float> query;
+    query[0] = 0.0f; query[1] = 0.0f; query[2] = 0.0f;
 
     float solid_scale1 = solid_angle.computeSolidAngle(query, 1.0);
     float solid_scale2 = solid_angle.computeSolidAngle(query, 2.0);
@@ -226,8 +225,6 @@ TEST(Functional, AccuracyScaleEffect)
     ASSERT_TRUE(solid_scale3 > 0.0f);
 }
 
-TEST_END
-
 int main() {
-    return TestFramework::TestRegistry::instance().runAll();
+    return TestFramework::TestRunner::instance().runAll();
 }

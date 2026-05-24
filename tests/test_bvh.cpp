@@ -1,9 +1,6 @@
 #include "test_framework.h"
 
-#include "../WindingNumber/UT_BVH.h"
-#include "../WindingNumber/UT_Vector3.h"
-
-TEST_SUITE(UT_BVH)
+#include "../WindingNumber/UT_BVHImpl.h"
 
 TEST(UT_BVH, EmptyBVH)
 {
@@ -154,8 +151,6 @@ TEST(UT_BVH, LargeBVH)
     ASSERT_EQ(bvh.primitiveCount(), n);
 }
 
-TEST_END
-
 int main() {
-    return TestFramework::TestRegistry::instance().runAll();
+    return TestFramework::TestRunner::instance().runAll();
 }

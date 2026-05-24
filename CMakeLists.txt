@@ -62,34 +62,48 @@ find_package(Eigen3 REQUIRED)
 find_package(TBB REQUIRED)
 find_package(LIBIGL REQUIRED QUIET)
 
-# Winding Number Core Source Files
-set(WN_SOURCES
+# Winding Number Core Library
+add_library(fastwinding_core STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/WindingNumber/UT_Array.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/WindingNumber/UT_SolidAngle.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/solver.cpp
+)
+
+target_include_directories(fastwinding_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_include_directories(fastwinding_core PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/WindingNumber
+)
+
+target_link_libraries(fastwinding_core PUBLIC
+    TBB::tbb
 )
 
 # Main Executable Target
-add_executable(${PROJECT_NAME} main.cpp ${WN_SOURCES})
+add_executable(${PROJECT_NAME} main.cpp)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/WindingNumber
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE igl::core TBB::tbb)
+target_link_libraries(${PROJECT_NAME} PRIVATE fastwinding_core igl::core)
 
 # Benchmarks
-add_executable(benchmark bench/bench_main.cpp ${WN_SOURCES})
+add_executable(benchmark bench/bench_main.cpp)
 target_include_directories(benchmark PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/WindingNumber
 )
-target_link_libraries(benchmark PRIVATE igl::core TBB::tbb)
+target_link_libraries(benchmark PRIVATE fastwinding_core igl::core)
 
-add_executable(benchmark_scaling bench/bench_scaling.cpp ${WN_SOURCES})
+add_executable(benchmark_scaling bench/bench_scaling.cpp)
 target_include_directories(benchmark_scaling PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/WindingNumber
 )
-target_link_libraries(benchmark_scaling PRIVATE igl::core TBB::tbb)
+target_link_libraries(benchmark_scaling PRIVATE fastwinding_core igl::core)
+
 
 # Fuzz Testing
 option(ENABLE_FUZZ "Build fuzz tests (requires libFuzzer)" OFF)
@@ -98,7 +112,14 @@ option(ENABLE_FUZZ "Build fuzz tests (requires libFuzzer)" OFF)
 enable_testing()
 
 add_executable(unit_tests tests/unit_tests.cpp)
+target_include_directories(unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(unit_tests PRIVATE fastwinding_core)
 add_test(NAME UnitTests COMMAND unit_tests)
+
+add_executable(test_array tests/test_array.cpp)
+target_include_directories(test_array PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_array PRIVATE fastwinding_core)
+add_test(NAME ArrayTests COMMAND test_array)
 
 add_test(NAME FastWindingTest COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} pig-head.ply pig-head-Q.dmat output.dmat
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

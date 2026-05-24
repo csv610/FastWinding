@@ -1,8 +1,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <vector>
-#include <Eigen/Dense>
-#include "WindingNumber/FastWindingNumbers.h"
+#include "../WindingNumber/UT_SolidAngle.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     if (size < 12) return 0;
@@ -26,52 +25,57 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
     size_t offset = 12;
 
-    Eigen::MatrixXd V(num_verts, 3);
+    using Vec3 = HDK_Sample::UT_Vector3T<float>;
+    std::vector<Vec3> vertices(num_verts);
     for (uint32_t i = 0; i < num_verts; ++i) {
         float x, y, z;
         safe_read(offset, x, 4); offset += 4;
         safe_read(offset, y, 4); offset += 4;
         safe_read(offset, z, 4); offset += 4;
-        V(i, 0) = x;
-        V(i, 1) = y;
-        V(i, 2) = z;
+        vertices[i][0] = x;
+        vertices[i][1] = y;
+        vertices[i][2] = z;
     }
 
-    Eigen::MatrixXi F(num_faces, 3);
+    std::vector<int> indices(num_faces * 3);
     for (uint32_t i = 0; i < num_faces; ++i) {
         int32_t v0, v1, v2;
         safe_read(offset, v0, 4); offset += 4;
         safe_read(offset, v1, 4); offset += 4;
         safe_read(offset, v2, 4); offset += 4;
-        F(i, 0) = v0;
-        F(i, 1) = v1;
-        F(i, 2) = v2;
+        if (v0 < 0 || v0 >= static_cast<int32_t>(num_verts)) return 0;
+        if (v1 < 0 || v1 >= static_cast<int32_t>(num_verts)) return 0;
+        if (v2 < 0 || v2 >= static_cast<int32_t>(num_verts)) return 0;
+        indices[i * 3 + 0] = v0;
+        indices[i * 3 + 1] = v1;
+        indices[i * 3 + 2] = v2;
     }
 
-    Eigen::MatrixXd P(num_queries, 3);
+    std::vector<Vec3> queries(num_queries);
     for (uint32_t i = 0; i < num_queries; ++i) {
         float x, y, z;
         safe_read(offset, x, 4); offset += 4;
         safe_read(offset, y, 4); offset += 4;
         safe_read(offset, z, 4); offset += 4;
-        P(i, 0) = x;
-        P(i, 1) = y;
-        P(i, 2) = z;
+        queries[i][0] = x;
+        queries[i][1] = y;
+        queries[i][2] = z;
     }
 
-    if (!V.size() || !F.size() || !P.size()) return 0;
-
-    for (int i = 0; i < F.rows(); ++i) {
-        for (int j = 0; j < 3; ++j) {
-            if (F(i, j) < 0 || F(i, j) >= V.rows()) return 0;
-        }
-    }
+    if (num_faces == 0 || num_verts == 0) return 0;
 
     try {
-        FastWindingNumber fwn;
-        fwn.build(V, F);
-        Eigen::VectorXd W;
-        fwn.compute(P, W);
+        HDK_Sample::UT_SolidAngle<float, float> solid_angle;
+        solid_angle.init(
+            static_cast<int>(num_faces),
+            indices.data(),
+            static_cast<int>(num_verts),
+            vertices.data(),
+            2);
+
+        for (uint32_t i = 0; i < num_queries; ++i) {
+            solid_angle.computeSolidAngle(queries[i], 2.0f);
+        }
     } catch (...) {
         return 0;
     }
